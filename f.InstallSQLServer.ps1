@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Installs SQL Server Express 2022 using values from c:\temp\tsas.config
+    Installs SQL Server Express 2022 using the bootstrapper and values from c:\temp\tsas.config
 #>
 
 # ----------------------------
@@ -45,13 +45,14 @@ $InstallerPath = Join-Path $TempDir "SQL2022-SSEI-Expr.exe"
 if (-not (Test-Path $TempDir)) { New-Item -Path $TempDir -ItemType Directory | Out-Null }
 try {
     $TestFile = Join-Path $TempDir "write_test.tmp"
-    "test" | Out-File $TestFile -ErrorAction Stop
+    "test" | Out-File -FilePath $TestFile -ErrorAction Stop
     Remove-Item $TestFile -Force
 } catch {
     Write-Error "Cannot write to $TempDir. Run as Administrator."
     exit 1
 }
 
+# Download bootstrapper if not already present
 if (-not (Test-Path $InstallerPath)) {
     Write-Host "Downloading SQL Server Express bootstrapper..."
     try {
@@ -62,26 +63,38 @@ if (-not (Test-Path $InstallerPath)) {
         exit 1
     }
 } else {
-    Write-Host "⚙️ Using existing installer: $InstallerPath"
+    Write-Host "⚙️ Using existing bootstrapper: $InstallerPath"
 }
 
 # ----------------------------
-# 3. Run installer
+# 3. Run bootstrapper to download installation media
+# ----------------------------
+$MediaPath = Join-Path $TempDir "SQL2022"
+
+if (-not (Test-Path $MediaPath)) {
+    New-Item -Path $MediaPath -ItemType Directory | Out-Null
+}
+
+Write-Host "Downloading SQL Server installation media..."
+$DownloadArgs = "/Action=Download /MediaPath=`"$MediaPath`" /Quiet"
+$downloadProcess = Start-Process -FilePath $InstallerPath -ArgumentList $DownloadArgs -Wait -PassThru
+
+if ($downloadProcess.ExitCode -ne 0) {
+    Write-Error "❌ Failed to download installation media. Exit code: $($downloadProcess.ExitCode)"
+    exit $downloadProcess.ExitCode
+}
+
+# ----------------------------
+# 4. Run installer from downloaded media
 # ----------------------------
 Write-Host "🛠️ Installing SQL Server Express 2022 (Instance: $SQLInstance)..."
 
-$Arguments = "/Action=Install /IAcceptSQLServerLicenseTerms /Quiet /InstanceName=$SQLInstance /SAPWD=$SAPWD /Features=SQLEngine //ADDCURRENTUSERASSQLADMIN /TCPEnabled=1"
+$InstallArgs = "/Action=Install /MediaPath=`"$MediaPath`" /IAcceptSQLServerLicenseTerms /Quiet /CONFIGURATIONFILE=C:\Temp\configfile.ini"
+$installProcess = Start-Process -FilePath $InstallerPath -ArgumentList $InstallArgs -Wait -PassThru
 
-try {
-    $process = Start-Process -FilePath $InstallerPath -ArgumentList $Arguments -Wait -PassThru
-    if ($process.ExitCode -eq 0) {
-        Write-Host "✅ SQL Server Express installation completed successfully."
-    } else {
-        Write-Error "❌ SQL Server Express installation failed. Exit code: $($process.ExitCode)"
-        exit $process.ExitCode
-    }
-} catch {
-    Write-Error "❌ Failed to launch installer: $($_.Exception.Message)"
-    exit 1
+if ($installProcess.ExitCode -eq 0) {
+    Write-Host "✅ SQL Server Express installation completed successfully."
+} else {
+    Write-Error "❌ SQL Server Express installation failed. Exit code: $($installProcess.ExitCode)"
+    exit $installProcess.ExitCode
 }
-
