@@ -1,0 +1,71 @@
+﻿<#
+.SYNOPSIS
+    Downloads and installs Microsoft ODBC Driver for SQL Server silently (with license acceptance).
+#>
+
+# ----------------------------
+# Configuration
+# ----------------------------
+$DownloadUrl = "https://go.microsoft.com/fwlink/?linkid=2266337"
+$TempDir = "C:\Temp"
+$InstallerPath = Join-Path $TempDir "msodbcsql.msi"
+$LogFile = Join-Path $TempDir "msodbcsql_Install.log"
+
+# ----------------------------
+# 1. Ensure C:\Temp exists and is writable
+# ----------------------------
+Write-Host "Checking C:\Temp folder..."
+if (-not (Test-Path $TempDir)) {
+    Write-Host "Creating $TempDir ..."
+    New-Item -Path $TempDir -ItemType Directory | Out-Null
+}
+
+try {
+    $TestFile = Join-Path $TempDir "write_test.tmp"
+    "test" | Out-File -FilePath $TestFile -ErrorAction Stop
+    Remove-Item $TestFile -Force
+    Write-Host "✅ Verified write access to $TempDir"
+} catch {
+    Write-Error "❌ Cannot write to $TempDir. Please run as Administrator."
+    exit 1
+}
+
+# ----------------------------
+# 2. Download the installer
+# ----------------------------
+if (-not (Test-Path $InstallerPath)) {
+    Write-Host "Downloading ODBC driver installer from Microsoft..."
+    try {
+        Invoke-WebRequest -Uri $DownloadUrl -OutFile $InstallerPath -UseBasicParsing -ErrorAction Stop
+        Write-Host "✅ Download complete: $InstallerPath"
+    } catch {
+        Write-Error "❌ Failed to download installer: $($_.Exception.Message)"
+        exit 1
+    }
+} else {
+    Write-Host "⚙️ Using existing file: $InstallerPath"
+}
+
+# ----------------------------
+# 3. Install the MSI silently
+# ----------------------------
+if (Test-Path $InstallerPath) {
+    Write-Host "Installing ODBC Driver silently..."
+    
+    # Added required license acceptance property
+    $Arguments = "/i `"$InstallerPath`" /qn /norestart /log `"$LogFile`" IACCEPTMSODBCSQLLICENSETERMS=YES"
+
+    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $Arguments -Wait -PassThru
+
+    if ($process.ExitCode -eq 0) {
+        Write-Host "✅ ODBC Driver installation completed successfully."
+    } else {
+        Write-Error "❌ ODBC Driver installation failed. Exit code: $($process.ExitCode). Check log: $LogFile"
+        exit $process.ExitCode
+    }
+} else {
+    Write-Error "❌ Installer file not found at $InstallerPath."
+    exit 1
+}
+
+Write-Host "✅ All done. Log file: $LogFile"
