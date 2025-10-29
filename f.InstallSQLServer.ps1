@@ -70,7 +70,7 @@ if (-not (Test-Path $InstallerPath)) {
 # ----------------------------
 Write-Host "🛠️ Installing SQL Server Express 2022 (Instance: $SQLInstance)..."
 
-$Arguments = "/Action=Install /IAcceptSQLServerLicenseTerms /Quiet /InstanceName=$SQLInstance /SAPWD=$SAPWD /Features=SQLEngine /TCPEnabled=1"
+$Arguments = "/Action=Install /IAcceptSQLServerLicenseTerms /Quiet /InstanceName=$SQLInstance /SAPWD=$SAPWD /Features=SQLEngine //ADDCURRENTUSERASSQLADMIN /TCPEnabled=1"
 
 try {
     $process = Start-Process -FilePath $InstallerPath -ArgumentList $Arguments -Wait -PassThru
@@ -84,3 +84,4 @@ try {
     Write-Error "❌ Failed to launch installer: $($_.Exception.Message)"
     exit 1
 }
+
