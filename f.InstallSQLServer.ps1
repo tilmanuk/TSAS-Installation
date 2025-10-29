@@ -89,7 +89,7 @@ if ($downloadProcess.ExitCode -ne 0) {
 # ----------------------------
 Write-Host "🛠️ Installing SQL Server Express 2022 (Instance: $SQLInstance)..."
 
-$InstallArgs = "/Action=Install /MediaPath=`"$MediaPath`" /IAcceptSQLServerLicenseTerms /Quiet /CONFIGURATIONFILE=C:\Temp\configfile.ini"
+$InstallArgs = "/Action=Install /MediaPath=`"$MediaPath`" /IAcceptSQLServerLicenseTerms /Quiet /CONFIGURATIONFILE=C:\Temp\SQLConfig.ini"
 $installProcess = Start-Process -FilePath $InstallerPath -ArgumentList $InstallArgs -Wait -PassThru
 
 if ($installProcess.ExitCode -eq 0) {
