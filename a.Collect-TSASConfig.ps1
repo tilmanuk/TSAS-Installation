@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Collects TSAS installation configuration interactively and saves to c:\temp\tsas.config
 #>
@@ -74,20 +74,54 @@ try {
 # ----------------------------
 # 3. Helper: generate safe password
 # ----------------------------
+# ----------------------------
+# 3. Helper: generate safe structured password
+# ----------------------------
 function New-SafePassword {
-    param([int]$Length = 12)
-    $chars = @()
-    $chars += [char[]](65..90)    # A-Z
-    $chars += [char[]](97..122)   # a-z
-    $chars += [char[]](48..57)    # 0-9
+    param(
+        [int]$BlockLength = 5,   # characters per block
+        [int]$Blocks = 3         # number of blocks
+    )
+
+    # Character sets
+    $upper = [char[]](65..90)           # A-Z
+    $lower = [char[]](97..122)          # a-z
+    $digit = [char[]](48..57)           # 0-9
+    $special = [char[]]('!','@','#','$','%','^','&','*')  # safe SQL Server special chars
+    $all = $upper + $lower + $digit + $special
 
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    $bytes = New-Object 'byte[]' $Length
-    $rng.GetBytes($bytes)
-    $pw = -join ($bytes | ForEach-Object { $chars[ $_ % $chars.Length ] })
+
+    # Helper to get one random character from a set
+    function Get-RandomChar([char[]]$set) {
+        $b = New-Object 'byte[]' 1
+        $rng.GetBytes($b)
+        return $set[$b[0] % $set.Length]
+    }
+
+    do {
+        $passwordBlocks = @()  # ensure array type
+        for ($i = 1; $i -le $Blocks; $i++) {
+            $blockChars = @()
+            for ($j = 1; $j -le $BlockLength; $j++) {
+                $blockChars += Get-RandomChar $all
+            }
+            $passwordBlocks += -join $blockChars
+        }
+        $pw = $passwordBlocks -join '-'
+
+        # Validation: check at least one uppercase, lowercase, digit, special
+        $hasUpper = $pw -match '[A-Z]'
+        $hasLower = $pw -match '[a-z]'
+        $hasDigit = $pw -match '\d'
+        $hasSpecial = $pw -match '[!@#$%^&*]'
+    } while (-not ($hasUpper -and $hasLower -and $hasDigit -and $hasSpecial))
+
     return $pw
 }
-$GeneratedPassword = New-SafePassword 12
+
+$GeneratedPassword = New-SafePassword
+Write-Host "Generated Password: $GeneratedPassword"
 
 # ----------------------------
 # 4. Collect configuration interactively
@@ -118,5 +152,40 @@ try {
     Write-Host "✅ Configuration saved to $ConfigFile"
 } catch {
     Write-Error "❌ Failed to save configuration: $($_.Exception.Message)"
+    exit 1
+}
+
+# ----------------------------
+#  6. Write SQL Configuration File (SQLConfig.ini)
+# ----------------------------
+$SQLConfigPath = Join-Path $TempDir "SQLConfig.ini"
+
+# Safely retrieve instance name and admin password from the collected config
+$InstanceName = $Config.SQLInstance
+$SAPassword   = $Config.AdminPassword
+
+if (-not $InstanceName -or -not $SAPassword) {
+    Write-Error "❌ SQL instance name or SA password missing in configuration. Cannot create SQLConfig.ini."
+    exit 1
+}
+
+# Build INI file content
+$SQLConfigContent = @"
+; Microsoft SQL Server Configuration file
+[OPTIONS]
+ACTION="Install"
+FEATURES=SQL
+INSTANCENAME="$InstanceName"
+SAPWD="$SAPassword"
+SECURITYMODE=SQL
+TCPENABLED=1
+"@
+
+# Write to disk
+try {
+    $SQLConfigContent | Out-File -FilePath $SQLConfigPath -Encoding UTF8 -Force
+    Write-Host "✅ SQL configuration file created: $SQLConfigPath"
+} catch {
+    Write-Error "❌ Failed to write SQLConfig.ini: $($_.Exception.Message)"
     exit 1
 }
