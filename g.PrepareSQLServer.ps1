@@ -146,4 +146,39 @@ END
 Invoke-Sqlcmd -ServerInstance $ServerInstance -Username 'sa' -Password $AdminPassword -Database $SQLDBName -Query $SqlUser -ErrorAction Stop -TrustServerCertificate -Encrypt Optional
 Write-Host "✅ Database user '$AdminUser' created/verified and granted db_owner on '$SQLDBName'."
 
+# ------------------------------------------------------------
+# Configure SQL Server TCP/IP Ports from tsas.config
+# ------------------------------------------------------------
+
+try {
+
+    # ----------------------------
+    # 2. Find the MSSQL??.{InstanceName} registry key
+    # ----------------------------
+    $BaseRegPath = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server"
+    $InstanceKey = Get-ChildItem $BaseRegPath | Where-Object { $_.PSChildName -match "MSSQL\d+\.$SQLInstance" }
+
+    if (-not $InstanceKey) {
+        throw "❌ SQL Server registry instance key not found for instance '$SQLInstance'"
+    }
+
+    $TcpIpRegPath = Join-Path $InstanceKey.PSPath "MSSQLServer\SuperSocketNetLib\Tcp\IPAll"
+    if (-not (Test-Path $TcpIpRegPath)) {
+        throw "❌ Tcp/IP registry path not found: $TcpIpRegPath"
+    }
+
+    Write-Host "✅ Found TCP/IP registry path: $TcpIpRegPath"
+
+    # ----------------------------
+    # 3. Update TCP/IP ports
+    # ----------------------------
+    Set-ItemProperty -Path $TcpIpRegPath -Name "TcpDynamicPorts" -Value ""
+    Set-ItemProperty -Path $TcpIpRegPath -Name "TcpPort" -Value 1433
+
+    Write-Host "✅ TcpDynamicPorts cleared and TcpPort set to 1433 successfully."
+
+} catch {
+    Write-Error "⚠️ Failed to update SQL Server TCP/IP ports: $_"
+}
+
 Write-Host "🎉 SQL setup complete."
