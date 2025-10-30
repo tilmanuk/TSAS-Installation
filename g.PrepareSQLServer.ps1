@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Creates a SQL Server database and admin login using JSON config from C:\Temp\tsas.config
 #>
@@ -90,7 +90,6 @@ Write-Host "✅ Database '$SQLDBName' created or verified."
 # ----------------------------
 # 6. Create login and assign sysadmin
 # ----------------------------
-# Escape single quotes in password for safe SQL
 $EscapedPassword = $AdminPassword -replace "'", "''"
 
 $SqlLogin = @"
@@ -151,34 +150,63 @@ Write-Host "✅ Database user '$AdminUser' created/verified and granted db_owner
 # ------------------------------------------------------------
 
 try {
-
-    # ----------------------------
-    # 2. Find the MSSQL??.{InstanceName} registry key
-    # ----------------------------
+    # Base registry path for SQL Server
     $BaseRegPath = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server"
+
+    # Find the instance key matching MSSQL??.{SQLInstance}
     $InstanceKey = Get-ChildItem $BaseRegPath | Where-Object { $_.PSChildName -match "MSSQL\d+\.$SQLInstance" }
 
     if (-not $InstanceKey) {
         throw "❌ SQL Server registry instance key not found for instance '$SQLInstance'"
     }
 
-    $TcpIpRegPath = Join-Path $InstanceKey.PSPath "MSSQLServer\SuperSocketNetLib\Tcp\IPAll"
-    if (-not (Test-Path $TcpIpRegPath)) {
-        throw "❌ Tcp/IP registry path not found: $TcpIpRegPath"
+    # TCP key path
+    $TcpKeyPath = Join-Path $InstanceKey.PSPath "MSSQLServer\SuperSocketNetLib\Tcp"
+
+    if (-not (Test-Path $TcpKeyPath)) {
+        throw "❌ Tcp registry path not found: $TcpKeyPath"
     }
 
-    Write-Host "✅ Found TCP/IP registry path: $TcpIpRegPath"
+    Write-Host "✅ Found TCP registry path: $TcpKeyPath"
 
-    # ----------------------------
-    # 3. Update TCP/IP ports
-    # ----------------------------
-    Set-ItemProperty -Path $TcpIpRegPath -Name "TcpDynamicPorts" -Value ""
-    Set-ItemProperty -Path $TcpIpRegPath -Name "TcpPort" -Value 1433
+    # Get all subkeys (IP1, IP2, ..., IPAll)
+    $IPSubKeys = Get-ChildItem $TcpKeyPath
 
-    Write-Host "✅ TcpDynamicPorts cleared and TcpPort set to 1433 successfully."
+    foreach ($IPKey in $IPSubKeys) {
+        Write-Host "🔧 Updating $($IPKey.PSChildName)..."
+
+        # Active and Enabled are REG_DWORD (ignore IPAll)
+        if ($IPKey.PSChildName -ne "IPAll") {
+            Set-ItemProperty -Path $IPKey.PSPath -Name "Active" -Value 1 -Type DWord -ErrorAction Stop
+            Set-ItemProperty -Path $IPKey.PSPath -Name "Enabled" -Value 1 -Type DWord -ErrorAction Stop
+        }
+
+        # TcpDynamicPorts and TcpPort are REG_SZ
+        Set-ItemProperty -Path $IPKey.PSPath -Name "TcpDynamicPorts" -Value "" -Type String -ErrorAction Stop
+        Set-ItemProperty -Path $IPKey.PSPath -Name "TcpPort" -Value "1433" -Type String -ErrorAction Stop
+
+        Write-Host "✅ $($IPKey.PSChildName) updated successfully."
+    }
 
 } catch {
     Write-Error "⚠️ Failed to update SQL Server TCP/IP ports: $_"
+}
+
+# ----------------------------
+# 8. Restart SQL Server service
+# ----------------------------
+try {
+    $ServiceName = "MSSQL`$$SQLInstance"  # Use backtick to escape the $ in the service name
+    Write-Host "🔄 Restarting SQL Server service: $ServiceName ..."
+    
+    if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
+        Restart-Service -Name $ServiceName -Force -ErrorAction Stop
+        Write-Host "✅ SQL Server service '$ServiceName' restarted successfully."
+    } else {
+        Write-Warning "⚠️ SQL Server service '$ServiceName' not found."
+    }
+} catch {
+    Write-Error "❌ Failed to restart SQL Server service '$ServiceName': $_"
 }
 
 Write-Host "🎉 SQL setup complete."
