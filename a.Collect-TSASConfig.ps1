@@ -141,7 +141,7 @@ $Config.SQLDBName = Prompt-ConfigValue "SQL Database name" "tsas"
 $Config.AdminUser = Prompt-ConfigValue "Admin Username" "bladmin"
 $Config.AdminPassword = Prompt-ConfigValue "Admin Password" $GeneratedPassword
 $Config.RSCDUser = Prompt-ConfigValue "RSCD User" $DetectedUser
-$Config.TSASInstallLocation = Prompt-ConfigValue "TSAS Install Location" "C:\Program Files\BMC Software\TSAS"
+$Config.TSASInstallLocation = Prompt-ConfigValue "TSAS Install Location" "C:\Program Files\BMC Software"
 $Config.PatchRepository = Prompt-ConfigValue "Patch Repository" "C:\patches"
 
 # ----------------------------
@@ -189,3 +189,4 @@ try {
     Write-Error "❌ Failed to write SQLConfig.ini: $($_.Exception.Message)"
     exit 1
 }
+
