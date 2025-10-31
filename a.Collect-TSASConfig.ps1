@@ -22,9 +22,9 @@ try {
     $TestFile = Join-Path $TempDir "write_test.tmp"
     "test" | Out-File -FilePath $TestFile -ErrorAction Stop
     Remove-Item $TestFile -Force
-    Write-Host "✅ Verified write access to $TempDir"
+    Write-Host "[OK] Verified write access to $TempDir"
 } catch {
-    Write-Error "❌ Cannot write to $TempDir. Please run as Administrator."
+    Write-Error "[ERROR] Cannot write to $TempDir. Please run as Administrator."
     exit 1
 }
 
@@ -63,17 +63,14 @@ try {
     $isAdmin = ([bool](([System.Security.Principal.WindowsPrincipal]::new(
         [System.Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)))
     if (-not $isAdmin) {
-        Write-Warning "⚠️ Current user ($DetectedUser) is not in local Administrators group."
+        Write-Warning "[WARN] Current user ($DetectedUser) is not in local Administrators group."
     } else {
-        Write-Host "✅ Current user ($DetectedUser) is a local Administrator."
+        Write-Host "[OK] Current user ($DetectedUser) is a local Administrator."
     }
 } catch {
-    Write-Warning "⚠️ Failed to check Administrator membership: $($_.Exception.Message)"
+    Write-Warning "[WARN] Failed to check Administrator membership: $($_.Exception.Message)"
 }
 
-# ----------------------------
-# 3. Helper: generate safe password
-# ----------------------------
 # ----------------------------
 # 3. Helper: generate safe structured password
 # ----------------------------
@@ -83,16 +80,14 @@ function New-SafePassword {
         [int]$Blocks = 3         # number of blocks
     )
 
-    # Character sets
     $upper = [char[]](65..90)           # A-Z
     $lower = [char[]](97..122)          # a-z
     $digit = [char[]](48..57)           # 0-9
-    $special = [char[]]('!','@','#','$','%','^','&','*')  # safe SQL Server special chars
+    $special = [char[]]('!','@','#','$','%','^','&','*')
     $all = $upper + $lower + $digit + $special
 
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
 
-    # Helper to get one random character from a set
     function Get-RandomChar([char[]]$set) {
         $b = New-Object 'byte[]' 1
         $rng.GetBytes($b)
@@ -100,7 +95,7 @@ function New-SafePassword {
     }
 
     do {
-        $passwordBlocks = @()  # ensure array type
+        $passwordBlocks = @()
         for ($i = 1; $i -le $Blocks; $i++) {
             $blockChars = @()
             for ($j = 1; $j -le $BlockLength; $j++) {
@@ -110,7 +105,6 @@ function New-SafePassword {
         }
         $pw = $passwordBlocks -join '-'
 
-        # Validation: check at least one uppercase, lowercase, digit, special
         $hasUpper = $pw -match '[A-Z]'
         $hasLower = $pw -match '[a-z]'
         $hasDigit = $pw -match '\d'
@@ -148,28 +142,25 @@ $Config.PatchRepository = Prompt-ConfigValue "Patch Repository" "C:\patches"
 # 5. Save configuration to file
 # ----------------------------
 try {
-    $Config | ConvertTo-Json -Depth 3 | Out-File -FilePath $ConfigFile -Encoding UTF8 -Force
-    Write-Host "✅ Configuration saved to $ConfigFile"
+    $Config | ConvertTo-Json -Depth 3 | Out-File -FilePath $ConfigFile -Encoding ASCII -Force
+    Write-Host "[OK] Configuration saved to $ConfigFile"
 } catch {
-    Write-Error "❌ Failed to save configuration: $($_.Exception.Message)"
+    Write-Error "[ERROR] Failed to save configuration: $($_.Exception.Message)"
     exit 1
 }
 
 # ----------------------------
-#  6. Write SQL Configuration File (SQLConfig.ini)
+# 6. Write SQL Configuration File (SQLConfig.ini)
 # ----------------------------
 $SQLConfigPath = Join-Path $TempDir "SQLConfig.ini"
-
-# Safely retrieve instance name and admin password from the collected config
 $InstanceName = $Config.SQLInstance
 $SAPassword   = $Config.AdminPassword
 
 if (-not $InstanceName -or -not $SAPassword) {
-    Write-Error "❌ SQL instance name or SA password missing in configuration. Cannot create SQLConfig.ini."
+    Write-Error "[ERROR] SQL instance name or SA password missing in configuration. Cannot create SQLConfig.ini."
     exit 1
 }
 
-# Build INI file content
 $SQLConfigContent = @"
 ; Microsoft SQL Server Configuration file
 [OPTIONS]
@@ -181,12 +172,10 @@ SECURITYMODE=SQL
 TCPENABLED=1
 "@
 
-# Write to disk
 try {
-    $SQLConfigContent | Out-File -FilePath $SQLConfigPath -Encoding UTF8 -Force
-    Write-Host "✅ SQL configuration file created: $SQLConfigPath"
+    $SQLConfigContent | Out-File -FilePath $SQLConfigPath -Encoding ASCII -Force
+    Write-Host "[OK] SQL configuration file created: $SQLConfigPath"
 } catch {
-    Write-Error "❌ Failed to write SQLConfig.ini: $($_.Exception.Message)"
+    Write-Error "[ERROR] Failed to write SQLConfig.ini: $($_.Exception.Message)"
     exit 1
 }
-
