@@ -1,4 +1,4 @@
-﻿# j.RunSQLServerMaster.ps1
+# j.RunSQLServerMaster.ps1
 # ------------------------------------------------------
 # Runs sqlserver_master.bat with parameters from tsas.config
 # ------------------------------------------------------
@@ -14,7 +14,7 @@ try {
     # Save current working directory to restore later
     $OriginalDir = Get-Location
 
-    Write-Host "🔍 Reading configuration from $ConfigPath..."
+    Write-Host "[INFO] Reading configuration from $ConfigPath..."
 
     if (-not (Test-Path $ConfigPath)) {
         throw "Configuration file not found at $ConfigPath"
@@ -30,7 +30,7 @@ try {
     $User      = $Config.AdminUser
     $Password  = $Config.AdminPassword
 
-    Write-Host "✅ Configuration loaded:"
+    Write-Host "[OK] Configuration loaded:"
     Write-Host "   SQL Server : $SQLServer"
     Write-Host "   Database   : $Database"
     Write-Host "   User       : $User"
@@ -42,7 +42,7 @@ try {
         throw "SQL script directory not found: $ScriptDir"
     }
     Set-Location $ScriptDir
-    Write-Host "📂 Changed directory to: $ScriptDir"
+    Write-Host "[INFO] Changed directory to: $ScriptDir"
 
     $BatchPath = Join-Path $ScriptDir $BatchFile
     if (-not (Test-Path $BatchPath)) {
@@ -53,7 +53,7 @@ try {
     # 4. Build arguments
     # ----------------------------
     $Arguments = "`"$SQLServer`" `"$Database`" `"$User`" `"$Password`""
-    Write-Host "🚀 Running: $BatchFile $Arguments"
+    Write-Host "[INFO] Running: $BatchFile $Arguments"
 
     # ----------------------------
     # 5. Execute batch file
@@ -63,19 +63,19 @@ try {
         -Wait -PassThru
 
     if ($process.ExitCode -eq 0) {
-        Write-Host "✅ SQL master script completed successfully."
+        Write-Host "[OK] SQL master script completed successfully."
     } else {
-        Write-Error "❌ SQL master script failed with exit code $($process.ExitCode)"
+        Write-Error "[ERROR] SQL master script failed with exit code $($process.ExitCode)"
     }
 
 } catch {
-    Write-Error "⚠️ Error: $_"
+    Write-Error "[WARN] Error: $_"
 } finally {
     # ----------------------------
     # 6. Restore original directory
     # ----------------------------
     if ($OriginalDir) {
         Set-Location $OriginalDir
-        Write-Host "📁 Returned to original directory: $OriginalDir"
+        Write-Host "[INFO] Returned to original directory: $OriginalDir"
     }
 }
