@@ -57,13 +57,13 @@ if (-not (Test-Path $InstallerPath)) {
     Write-Host "Downloading SQL Server Express bootstrapper..."
     try {
         Invoke-WebRequest -Uri $InstallerUrl -OutFile $InstallerPath -UseBasicParsing -ErrorAction Stop
-        Write-Host "✅ Download complete: $InstallerPath"
+        Write-Host "[OK] Download complete: $InstallerPath"
     } catch {
-        Write-Error "Failed to download installer: $($_.Exception.Message)"
+        Write-Error "[ERROR] Failed to download installer: $($_.Exception.Message)"
         exit 1
     }
 } else {
-    Write-Host "⚙️ Using existing bootstrapper: $InstallerPath"
+    Write-Host "[INFO] Using existing bootstrapper: $InstallerPath"
 }
 
 # ----------------------------
@@ -80,21 +80,21 @@ $DownloadArgs = "/Action=Download /MediaPath=`"$MediaPath`" /Quiet"
 $downloadProcess = Start-Process -FilePath $InstallerPath -ArgumentList $DownloadArgs -Wait -PassThru
 
 if ($downloadProcess.ExitCode -ne 0) {
-    Write-Error "❌ Failed to download installation media. Exit code: $($downloadProcess.ExitCode)"
+    Write-Error "[ERROR] Failed to download installation media. Exit code: $($downloadProcess.ExitCode)"
     exit $downloadProcess.ExitCode
 }
 
 # ----------------------------
 # 4. Run installer from downloaded media
 # ----------------------------
-Write-Host "🛠️ Installing SQL Server Express 2022 (Instance: $SQLInstance)..."
+Write-Host "Installing SQL Server Express 2022 (Instance: $SQLInstance)..."
 
 $InstallArgs = "/Action=Install /MediaPath=`"$MediaPath`" /IAcceptSQLServerLicenseTerms /Quiet /CONFIGURATIONFILE=C:\Temp\SQLConfig.ini"
 $installProcess = Start-Process -FilePath $InstallerPath -ArgumentList $InstallArgs -Wait -PassThru
 
 if ($installProcess.ExitCode -eq 0) {
-    Write-Host "✅ SQL Server Express installation completed successfully."
+    Write-Host "[OK] SQL Server Express installation completed successfully."
 } else {
-    Write-Error "❌ SQL Server Express installation failed. Exit code: $($installProcess.ExitCode)"
+    Write-Error "[ERROR] SQL Server Express installation failed. Exit code: $($installProcess.ExitCode)"
     exit $installProcess.ExitCode
 }
