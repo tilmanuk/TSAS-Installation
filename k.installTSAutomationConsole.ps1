@@ -1,4 +1,3 @@
-
 <#
 .SYNOPSIS
     Prepares TSAC installer options and runs TSSACONSOLE installer silently.
@@ -22,29 +21,29 @@ try {
     # 2. Ensure we can write to HKLM
     # ----------------------------
     if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
-        throw "❌ Administrator privileges are required to modify HKLM registry keys."
+        throw "[ERROR] Administrator privileges are required to modify HKLM registry keys."
     }
 
     # ----------------------------
     # 3. Set registry values
     # ----------------------------
     foreach ($name in $ValuesToSet.Keys) {
-        Write-Host "Setting $name to $($ValuesToSet[$name]) in $RegPath..."
+        Write-Host "[INFO] Setting $name to $($ValuesToSet[$name]) in $RegPath..."
         Set-ItemProperty -Path $RegPath -Name $name -Value $ValuesToSet[$name] -Type DWord -Force
-        Write-Host "✅ $name updated successfully."
+        Write-Host "[OK] $name updated successfully."
     }
 
 } catch {
-    Write-Error "⚠️ Failed to update registry: $_"
+    Write-Error "[WARN] Failed to update registry: $_"
 }
 
 # ----------------------------
 # 1. Ensure C:\Temp exists and is writable
 # ----------------------------
 $TempDir = "C:\Temp"
-Write-Host "Checking $TempDir folder..."
+Write-Host "[INFO] Checking $TempDir folder..."
 if (-not (Test-Path $TempDir)) {
-    Write-Host "Creating $TempDir ..."
+    Write-Host "[INFO] Creating $TempDir ..."
     New-Item -Path $TempDir -ItemType Directory | Out-Null
 }
 
@@ -52,9 +51,9 @@ try {
     $TestFile = Join-Path $TempDir "write_test.tmp"
     "test" | Out-File -FilePath $TestFile -ErrorAction Stop
     Remove-Item $TestFile -Force
-    Write-Host "✅ Verified write access to $TempDir"
+    Write-Host "[OK] Verified write access to $TempDir"
 } catch {
-    Write-Error "❌ Cannot write to $TempDir. Please run as Administrator."
+    Write-Error "[ERROR] Cannot write to $TempDir. Please run as Administrator."
     exit 1
 }
 
@@ -64,20 +63,20 @@ try {
 $ConfigFile = Join-Path $TempDir "tsas.config"
 
 if (-not (Test-Path $ConfigFile)) {
-    Write-Error "❌ Configuration file not found: $ConfigFile"
+    Write-Error "[ERROR] Configuration file not found: $ConfigFile"
     exit 1
 }
 
 try {
     $Config = Get-Content -Raw -Path $ConfigFile | ConvertFrom-Json -ErrorAction Stop
 } catch {
-    Write-Error "❌ Failed to parse configuration file as JSON: $($_.Exception.Message)"
+    Write-Error "[ERROR] Failed to parse configuration file as JSON: $($_.Exception.Message)"
     exit 1
 }
 
 $TSASInstallLocation = $Config.TSASInstallLocation
 if (-not $TSASInstallLocation) {
-    Write-Error "❌ TSASInstallLocation not found in configuration file."
+    Write-Error "[ERROR] TSASInstallLocation not found in configuration file."
     exit 1
 }
 
@@ -101,9 +100,9 @@ $SsiContent = @"
 
 try {
     $SsiContent | Out-File -FilePath $SsiFile -Encoding ASCII -Force
-    Write-Host "✅ Created SSI file at $SsiFile with install location: $InstallRoot"
+    Write-Host "[OK] Created SSI file at $SsiFile with install location: $InstallRoot"
 } catch {
-    Write-Error "❌ Failed to create SSI file: $($_.Exception.Message)"
+    Write-Error "[ERROR] Failed to create SSI file: $($_.Exception.Message)"
     exit 1
 }
 
@@ -116,22 +115,22 @@ $InstallerPattern = "TSSACONSOLE???-WIN64.exe"
 $Installer = Get-ChildItem -Path $InstallerFolder -Filter $InstallerPattern | Select-Object -First 1
 
 if (-not $Installer) {
-    Write-Host "⚠️ Could not find installer matching '$InstallerPattern' in $InstallerFolder"
-    Write-Host "Please download the TSAC installer from support.bmc.com"
+    Write-Host "[WARN] Could not find installer matching '$InstallerPattern' in $InstallerFolder"
+    Write-Host "[INFO] Please download the TSAC installer from support.bmc.com"
     Start-Process "https://support.bmc.com" -UseNewEnvironment
     exit 1
 }
 
-Write-Host "✅ Found installer: $($Installer.FullName)"
+Write-Host "[OK] Found installer: $($Installer.FullName)"
 
 # ----------------------------
 # 6. Run TSSACONSOLE installer silently
 # ----------------------------
 try {
-    Write-Host "Running TSAC installer silently..."
+    Write-Host "[INFO] Running TSAC installer silently..."
     Start-Process -FilePath $Installer.FullName -ArgumentList "-i silent -DOPTIONS_FILE=`"$SsiFile`"" -Wait -NoNewWindow
-    Write-Host "✅ TSAC installation completed successfully."
+    Write-Host "[OK] TSAC installation completed successfully."
 } catch {
-    Write-Error "❌ TSAC installation failed: $($_.Exception.Message)"
+    Write-Error "[ERROR] TSAC installation failed: $($_.Exception.Message)"
     exit 1
 }
