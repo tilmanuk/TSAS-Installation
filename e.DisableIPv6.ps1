@@ -1,11 +1,11 @@
-﻿# Run as Administrator
+# Run as Administrator
 
 # ----------------------------
 # Configuration
 # ----------------------------
 $RegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters"
 $ValueName = "DisabledComponents"
-# Value 0xFF = disable IPv6 on all non-tunnel and tunnel interfaces (per Microsoft guidance)  [oai_citation:3‡Microsoft Learn](https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/configure-ipv6-in-windows?utm_source=chatgpt.com)
+# Value 0xFF = disable IPv6 on all non-tunnel and tunnel interfaces (per Microsoft guidance)
 $ValueData = 0xFF
 
 # ----------------------------
@@ -25,7 +25,7 @@ if (Test-Path $RegPath) {
         Write-Host "No existing DisabledComponents value found."
     }
 } else {
-    Write-Host "Registry path not found — something unexpected."
+    Write-Host "Registry path not found - something unexpected."
 }
 
 # ----------------------------
@@ -34,13 +34,14 @@ if (Test-Path $RegPath) {
 Write-Host "Setting DisabledComponents = 0x$("{0:X}" -f $ValueData) in $RegPath"
 try {
     New-ItemProperty -Path $RegPath -Name $ValueName -PropertyType DWORD -Force -Value $ValueData | Out-Null
-    Write-Host "✅ Registry updated successfully."
+    Write-Host "[OK] Registry updated successfully."
 } catch {
-    Write-Error "❌ Failed to update registry: $($_.Exception.Message)"
+    Write-Error "[ERROR] Failed to update registry: $($_.Exception.Message)"
     exit 1
 }
 
 # ----------------------------
 # 3. Inform user that restart is needed
 # ----------------------------
-Write-Host "`n⚠️ You must **restart the computer** for changes to take effect."
+Write-Host ""
+Write-Host "[WARNING] You must restart the computer for changes to take effect."
