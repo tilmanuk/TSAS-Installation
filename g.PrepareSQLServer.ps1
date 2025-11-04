@@ -10,7 +10,7 @@ if (-not (Get-Module -ListAvailable -Name SqlServer)) {
     Write-Host "SqlServer module not found. Installing from PSGallery..."
     try {
         Install-Module -Name SqlServer -Force -Repository PSGallery -Scope CurrentUser -ErrorAction Stop
-        Write-Host "[OK] SqlServer module installed."
+        Write-Host "[OK] SqlServer module installed." -ForegroundColor Green
     } catch {
         Write-Error "[ERROR] Failed to install SqlServer module: $($_.Exception.Message)"
         exit 1
@@ -63,7 +63,7 @@ Write-Host "Connecting to SQL Server instance: $ServerInstance"
 
 try {
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Username 'sa' -Password $AdminPassword -Query "SELECT 1" -ErrorAction Stop -TrustServerCertificate -Encrypt Optional | Out-Null
-    Write-Host "[OK] Connected to SQL Server."
+    Write-Host "[OK] Connected to SQL Server." -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Cannot connect to SQL Server as 'sa'. Error: $($_.Exception.Message)"
     exit 1
@@ -85,7 +85,7 @@ END
 "@
 
 Invoke-Sqlcmd -ServerInstance $ServerInstance -Username 'sa' -Password $AdminPassword -Query $SqlCreateDb -ErrorAction Stop -TrustServerCertificate -Encrypt Optional
-Write-Host "[OK] Database '$SQLDBName' created or verified."
+Write-Host "[OK] Database '$SQLDBName' created or verified." -ForegroundColor Green
 
 # ----------------------------
 # 6. Create login and assign sysadmin
@@ -116,7 +116,7 @@ END
 "@
 
 Invoke-Sqlcmd -ServerInstance $ServerInstance -Username 'sa' -Password $AdminPassword -Query $SqlLogin -ErrorAction Stop -TrustServerCertificate -Encrypt Optional
-Write-Host "[OK] Login '$AdminUser' verified and granted sysadmin."
+Write-Host "[OK] Login '$AdminUser' verified and granted sysadmin." -ForegroundColor Green
 
 # ----------------------------
 # 7. Create database user and grant db_owner
@@ -143,7 +143,7 @@ END
 "@
 
 Invoke-Sqlcmd -ServerInstance $ServerInstance -Username 'sa' -Password $AdminPassword -Database $SQLDBName -Query $SqlUser -ErrorAction Stop -TrustServerCertificate -Encrypt Optional
-Write-Host "[OK] Database user '$AdminUser' created or verified and granted db_owner on '$SQLDBName'."
+Write-Host "[OK] Database user '$AdminUser' created or verified and granted db_owner on '$SQLDBName'." -ForegroundColor Green
 
 # ------------------------------------------------------------
 # Configure SQL Server TCP/IP Ports from tsas.config
@@ -162,12 +162,12 @@ try {
         throw "[ERROR] Tcp registry path not found: $TcpKeyPath"
     }
 
-    Write-Host "[OK] Found TCP registry path: $TcpKeyPath"
+    Write-Host "[OK] Found TCP registry path: $TcpKeyPath" -ForegroundColor Green
 
     $IPSubKeys = Get-ChildItem $TcpKeyPath
 
     foreach ($IPKey in $IPSubKeys) {
-        Write-Host "[INFO] Updating $($IPKey.PSChildName)..."
+        Write-Host "[INFO] Updating $($IPKey.PSChildName)..." -ForegroundColor Cyan
 
         if ($IPKey.PSChildName -ne "IPAll") {
             Set-ItemProperty -Path $IPKey.PSPath -Name "Active" -Value 1 -Type DWord -ErrorAction Stop
@@ -177,7 +177,7 @@ try {
         Set-ItemProperty -Path $IPKey.PSPath -Name "TcpDynamicPorts" -Value "" -Type String -ErrorAction Stop
         Set-ItemProperty -Path $IPKey.PSPath -Name "TcpPort" -Value "1433" -Type String -ErrorAction Stop
 
-        Write-Host "[OK] $($IPKey.PSChildName) updated successfully."
+        Write-Host "[OK] $($IPKey.PSChildName) updated successfully." -ForegroundColor Green
     }
 
 } catch {
@@ -189,11 +189,11 @@ try {
 # ----------------------------
 try {
     $ServiceName = "MSSQL`$$SQLInstance"
-    Write-Host "[INFO] Restarting SQL Server service: $ServiceName ..."
+    Write-Host "[INFO] Restarting SQL Server service: $ServiceName ..." -ForegroundColor Cyan
     
     if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
         Restart-Service -Name $ServiceName -Force -ErrorAction Stop
-        Write-Host "[OK] SQL Server service '$ServiceName' restarted successfully."
+        Write-Host "[OK] SQL Server service '$ServiceName' restarted successfully." -ForegroundColor Green
     } else {
         Write-Warning "[WARN] SQL Server service '$ServiceName' not found."
     }
@@ -201,4 +201,4 @@ try {
     Write-Error "[ERROR] Failed to restart SQL Server service '$ServiceName': $_"
 }
 
-Write-Host "[OK] SQL setup complete."
+Write-Host "[OK] SQL setup complete." -ForegroundColor Green
