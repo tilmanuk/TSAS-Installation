@@ -17,7 +17,7 @@ try {
     $TestFile = Join-Path $TempDir "write_test.tmp"
     "test" | Out-File -FilePath $TestFile -ErrorAction Stop
     Remove-Item $TestFile -Force
-    Write-Host "[OK] Verified write access to $TempDir"
+    Write-Host "[OK] Verified write access to $TempDir" -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Cannot write to $TempDir. Please run as Administrator."
     exit 1
@@ -56,7 +56,7 @@ if ($InstallerFiles.Count -gt 1) {
     $InstallerExe = $InstallerFiles[0].FullName
 }
 
-Write-Host "[OK] Found RSCD installer: $InstallerExe"
+Write-Host "[OK] Found RSCD installer: $InstallerExe" -ForegroundColor Green
 
 # ----------------------------
 # 3. Load tsas.config (JSON)
@@ -86,13 +86,13 @@ if ([string]::IsNullOrWhiteSpace($InstallRoot) -or [string]::IsNullOrWhiteSpace(
 $RSCDInstallPath = Join-Path $InstallRoot 'RSCD'
 $LogFile = Join-Path $TempDir 'RSCDInstall.log'
 
-Write-Host "[INFO] Installing RSCD Agent to: $RSCDInstallPath"
-Write-Host "[INFO] Log file: $LogFile"
+Write-Host "[INFO] Installing RSCD Agent to: $RSCDInstallPath" -ForegroundColor Cyan
+Write-Host "[INFO] Log file: $LogFile" -ForegroundColor Cyan
 
 # ----------------------------
 # 4. Run the RSCD Agent Installer (MSI)
 # ----------------------------
-Write-Host "[INFO] Installing RSCD Agent silently..."
+Write-Host "[INFO] Installing RSCD Agent silently..." -ForegroundColor Cyan
 
 $InstallerFile = Get-ChildItem -Path "C:\Temp\rscd\windows_64" -Filter "RSCD*-WIN64.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $InstallerFile) {
@@ -101,14 +101,14 @@ if (-not $InstallerFile) {
 }
 
 $InstallerPath = $InstallerFile.FullName
-Write-Host "[OK] Found installer: $InstallerPath"
+Write-Host "[OK] Found installer: $InstallerPath" -ForegroundColor Green
 
 $Arguments = "/i `"$InstallerPath`" /qn /norestart INSTALLDIR=`"$InstallRoot`""
 
 try {
     $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $Arguments -Wait -PassThru -ErrorAction Stop
     if ($process.ExitCode -eq 0) {
-        Write-Host "[OK] RSCD Agent installed successfully."
+        Write-Host "[OK] RSCD Agent installed successfully." -ForegroundColor Green
     } else {
         Write-Error "[ERROR] RSCD installation failed with exit code: $($process.ExitCode)"
         exit $process.ExitCode
@@ -125,11 +125,11 @@ $ServiceName = "TrueSight Server Automation RSCD Agent"
 try {
     $svc = Get-Service -Name $ServiceName -ErrorAction Stop
     if ($svc.Status -ne 'Running') {
-        Write-Host "[INFO] Starting service $ServiceName ..."
+        Write-Host "[INFO] Starting service $ServiceName ..." -ForegroundColor Cyan
         Start-Service -Name $ServiceName
         $svc.WaitForStatus('Running', '00:00:30')  # 30 seconds timeout
     }
-    Write-Host "[OK] RSCD Agent service '$ServiceName' is running."
+    Write-Host "[OK] RSCD Agent service '$ServiceName' is running." -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Could not find or start service '$ServiceName'. $_"
     exit 1
@@ -155,11 +155,11 @@ try {
     $pattern = "^\*\s+rw,\s*user=$escapedUser\s*$"
 
     if ($lines -match $pattern) {
-        Write-Host "[OK] Exports file already contains entry for user $RSCDUser."
+        Write-Host "[OK] Exports file already contains entry for user $RSCDUser." -ForegroundColor Green
     } else {
         $NewLine = "*`trw, user=$RSCDUser"
         Add-Content -Path $ExportsFile -Value $NewLine -ErrorAction Stop
-        Write-Host "[OK] Added new exports entry: $NewLine"
+        Write-Host "[OK] Added new exports entry: $NewLine" -ForegroundColor Green
     }
 } catch {
     Write-Error "[ERROR] Failed to update exports file: $($_.Exception.Message)"
@@ -167,6 +167,6 @@ try {
 }
 
 Write-Host ""
-Write-Host "[OK] RSCD Agent installation and configuration complete."
+Write-Host "[OK] RSCD Agent installation and configuration complete." -ForegroundColor Green
 Write-Host "    Install path: $RSCDInstallPath"
 Write-Host "    Exports entry verified for: $RSCDUser"
