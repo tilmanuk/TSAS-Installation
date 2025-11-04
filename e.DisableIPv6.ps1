@@ -34,7 +34,7 @@ if (Test-Path $RegPath) {
 Write-Host "Setting DisabledComponents = 0x$("{0:X}" -f $ValueData) in $RegPath"
 try {
     New-ItemProperty -Path $RegPath -Name $ValueName -PropertyType DWORD -Force -Value $ValueData | Out-Null
-    Write-Host "[OK] Registry updated successfully."
+    Write-Host "[OK] Registry updated successfully." -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Failed to update registry: $($_.Exception.Message)"
     exit 1
@@ -44,4 +44,4 @@ try {
 # 3. Inform user that restart is needed
 # ----------------------------
 Write-Host ""
-Write-Host "[WARNING] You must restart the computer for changes to take effect."
+Write-Host "[WARNING] You must restart the computer for changes to take effect." -ForegroundColor Yellow
