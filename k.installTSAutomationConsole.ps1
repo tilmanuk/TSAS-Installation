@@ -28,9 +28,9 @@ try {
     # 3. Set registry values
     # ----------------------------
     foreach ($name in $ValuesToSet.Keys) {
-        Write-Host "[INFO] Setting $name to $($ValuesToSet[$name]) in $RegPath..."
+        Write-Host "[INFO] Setting $name to $($ValuesToSet[$name]) in $RegPath..." -ForegroundColor Cyan
         Set-ItemProperty -Path $RegPath -Name $name -Value $ValuesToSet[$name] -Type DWord -Force
-        Write-Host "[OK] $name updated successfully."
+        Write-Host "[OK] $name updated successfully." -ForegroundColor Green
     }
 
 } catch {
@@ -41,9 +41,9 @@ try {
 # 1. Ensure C:\Temp exists and is writable
 # ----------------------------
 $TempDir = "C:\Temp"
-Write-Host "[INFO] Checking $TempDir folder..."
+Write-Host "[INFO] Checking $TempDir folder..." -ForegroundColor Cyan
 if (-not (Test-Path $TempDir)) {
-    Write-Host "[INFO] Creating $TempDir ..."
+    Write-Host "[INFO] Creating $TempDir ..." -ForegroundColor Cyan
     New-Item -Path $TempDir -ItemType Directory | Out-Null
 }
 
@@ -51,7 +51,7 @@ try {
     $TestFile = Join-Path $TempDir "write_test.tmp"
     "test" | Out-File -FilePath $TestFile -ErrorAction Stop
     Remove-Item $TestFile -Force
-    Write-Host "[OK] Verified write access to $TempDir"
+    Write-Host "[OK] Verified write access to $TempDir" -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Cannot write to $TempDir. Please run as Administrator."
     exit 1
@@ -100,7 +100,7 @@ $SsiContent = @"
 
 try {
     $SsiContent | Out-File -FilePath $SsiFile -Encoding ASCII -Force
-    Write-Host "[OK] Created SSI file at $SsiFile with install location: $InstallRoot"
+    Write-Host "[OK] Created SSI file at $SsiFile with install location: $InstallRoot" -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Failed to create SSI file: $($_.Exception.Message)"
     exit 1
@@ -115,21 +115,21 @@ $InstallerPattern = "TSSACONSOLE???-WIN64.exe"
 $Installer = Get-ChildItem -Path $InstallerFolder -Filter $InstallerPattern | Select-Object -First 1
 
 if (-not $Installer) {
-    Write-Host "[WARN] Could not find installer matching '$InstallerPattern' in $InstallerFolder"
-    Write-Host "[INFO] Please download the TSAC installer from support.bmc.com"
+    Write-Host "[WARN] Could not find installer matching '$InstallerPattern' in $InstallerFolder" -ForegroundColor Red
+    Write-Host "[INFO] Please download the TSAC installer from support.bmc.com" -ForegroundColor Cyan
     Start-Process "https://support.bmc.com" -UseNewEnvironment
     exit 1
 }
 
-Write-Host "[OK] Found installer: $($Installer.FullName)"
+Write-Host "[OK] Found installer: $($Installer.FullName)" -ForegroundColor Green
 
 # ----------------------------
 # 6. Run TSSACONSOLE installer silently
 # ----------------------------
 try {
-    Write-Host "[INFO] Running TSAC installer silently..."
+    Write-Host "[INFO] Running TSAC installer silently..." -ForegroundColor Cyan
     Start-Process -FilePath $Installer.FullName -ArgumentList "-i silent -DOPTIONS_FILE=`"$SsiFile`"" -Wait -NoNewWindow
-    Write-Host "[OK] TSAC installation completed successfully."
+    Write-Host "[OK] TSAC installation completed successfully." -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] TSAC installation failed: $($_.Exception.Message)"
     exit 1
