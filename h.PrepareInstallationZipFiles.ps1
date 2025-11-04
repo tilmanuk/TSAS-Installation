@@ -25,7 +25,7 @@ try {
     $TestFile = Join-Path $TempDir "write_test.tmp"
     "test" | Out-File -FilePath $TestFile -ErrorAction Stop
     Remove-Item $TestFile -Force
-    Write-Host "[OK] Verified write access to $TempDir"
+    Write-Host "[OK] Verified write access to $TempDir" -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Cannot write to $TempDir. Please run as Administrator."
     exit 1
@@ -49,8 +49,8 @@ if (-not $RSCDFile -or -not $TSSAFile) {
     exit 1
 }
 
-Write-Host "[OK] Found RSCD ZIP: $($RSCDFile.Name)"
-Write-Host "[OK] Found TSSA ZIP: $($TSSAFile.Name)"
+Write-Host "[OK] Found RSCD ZIP: $($RSCDFile.Name)" -ForegroundColor Green
+Write-Host "[OK] Found TSSA ZIP: $($TSSAFile.Name)" -ForegroundColor Green
 
 # ----------------------------
 # 4. Extract ZIP files
@@ -58,14 +58,14 @@ Write-Host "[OK] Found TSSA ZIP: $($TSSAFile.Name)"
 try {
     Write-Host "Extracting $($RSCDFile.Name)..."
     Expand-Archive -Path $RSCDFile.FullName -DestinationPath $TempDir -Force -ErrorAction Stop
-    Write-Host "[OK] Extracted RSCD Agent."
+    Write-Host "[OK] Extracted RSCD Agent." -ForegroundColor Green
 
     Write-Host "Extracting $($TSSAFile.Name)..."
     Expand-Archive -Path $TSSAFile.FullName -DestinationPath $TempDir -Force -ErrorAction Stop
-    Write-Host "[OK] Extracted TSSA WIN64."
+    Write-Host "[OK] Extracted TSSA WIN64." -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Extraction failed: $($_.Exception.Message)"
     exit 1
 }
 
-Write-Host "[OK] Extraction complete. Files are ready in $TempDir."
+Write-Host "[OK] Extraction complete. Files are ready in $TempDir." -ForegroundColor Green
