@@ -14,7 +14,7 @@ try {
     # Save current working directory to restore later
     $OriginalDir = Get-Location
 
-    Write-Host "[INFO] Reading configuration from $ConfigPath..."
+    Write-Host "[INFO] Reading configuration from $ConfigPath..." -ForegroundColor Cyan
 
     if (-not (Test-Path $ConfigPath)) {
         throw "Configuration file not found at $ConfigPath"
@@ -30,7 +30,7 @@ try {
     $User      = $Config.AdminUser
     $Password  = $Config.AdminPassword
 
-    Write-Host "[OK] Configuration loaded:"
+    Write-Host "[OK] Configuration loaded:" -ForegroundColor Green
     Write-Host "   SQL Server : $SQLServer"
     Write-Host "   Database   : $Database"
     Write-Host "   User       : $User"
@@ -42,7 +42,7 @@ try {
         throw "SQL script directory not found: $ScriptDir"
     }
     Set-Location $ScriptDir
-    Write-Host "[INFO] Changed directory to: $ScriptDir"
+    Write-Host "[INFO] Changed directory to: $ScriptDir" -ForegroundColor Cyan
 
     $BatchPath = Join-Path $ScriptDir $BatchFile
     if (-not (Test-Path $BatchPath)) {
@@ -53,7 +53,7 @@ try {
     # 4. Build arguments
     # ----------------------------
     $Arguments = "`"$SQLServer`" `"$Database`" `"$User`" `"$Password`""
-    Write-Host "[INFO] Running: $BatchFile $Arguments"
+    Write-Host "[INFO] Running: $BatchFile $Arguments" -ForegroundColor Cyan
 
     # ----------------------------
     # 5. Execute batch file
@@ -63,7 +63,7 @@ try {
         -Wait -PassThru
 
     if ($process.ExitCode -eq 0) {
-        Write-Host "[OK] SQL master script completed successfully."
+        Write-Host "[OK] SQL master script completed successfully." -ForegroundColor Green
     } else {
         Write-Error "[ERROR] SQL master script failed with exit code $($process.ExitCode)"
     }
@@ -76,6 +76,6 @@ try {
     # ----------------------------
     if ($OriginalDir) {
         Set-Location $OriginalDir
-        Write-Host "[INFO] Returned to original directory: $OriginalDir"
+        Write-Host "[INFO] Returned to original directory: $OriginalDir" -ForegroundColor Cyan
     }
 }
