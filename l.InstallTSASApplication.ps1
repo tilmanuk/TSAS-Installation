@@ -19,7 +19,7 @@ if (-not $Installer) {
     exit 1
 }
 
-Write-Host "[OK] Found installer: $($Installer.FullName)"
+Write-Host "[OK] Found installer: $($Installer.FullName)" -ForegroundColor Green
 
 # ----------------------------
 # 2. Load JSON configuration
@@ -69,9 +69,9 @@ Write-Host ""
 # 5. Launch TSSA installer interactively
 # ----------------------------
 try {
-    Write-Host "[INFO] Launching TSSA installer: $($Installer.FullName)"
+    Write-Host "[INFO] Launching TSSA installer: $($Installer.FullName)" -ForegroundColor Cyan
     Start-Process -FilePath $Installer.FullName -Wait
-    Write-Host "[OK] Installer process completed."
+    Write-Host "[OK] Installer process completed." -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Failed to launch TSSA installer: $($_.Exception.Message)"
     exit 1
@@ -86,7 +86,7 @@ try {
     $svc = Get-Service -Name $ServiceName -ErrorAction Stop
 
     if ($svc.Status -ne 'Running') {
-        Write-Host "[WARN] Service '$ServiceName' is not running. Attempting to start..."
+        Write-Host "[WARN] Service '$ServiceName' is not running. Attempting to start..." -ForegroundColor Red
 
         # Start service silently (suppress default "Waiting..." output)
         Start-Service -Name $ServiceName -ErrorAction Stop | Out-Null
@@ -95,7 +95,7 @@ try {
         $spinner = @("|","/","-","\")
         $i = 0
         $timeout = (Get-Date).AddSeconds(60)
-        Write-Host -NoNewline "[INFO] Waiting for service to start "
+        Write-Host -NoNewline "[INFO] Waiting for service to start " -ForegroundColor Cyan
 
         while ((Get-Service -Name $ServiceName).Status -ne 'Running' -and (Get-Date) -lt $timeout) {
             Write-Host -NoNewline ("`b" + $spinner[$i % $spinner.Length])
@@ -107,13 +107,13 @@ try {
         Write-Host "`b "
 
         if ((Get-Service -Name $ServiceName).Status -eq 'Running') {
-            Write-Host "[OK] Service '$ServiceName' started successfully."
+            Write-Host "[OK] Service '$ServiceName' started successfully." -ForegroundColor Green
         } else {
-            Write-Host "[ERROR] Service '$ServiceName' did not start within the expected time."
+            Write-Host "[ERROR] Service '$ServiceName' did not start within the expected time." -ForegroundColor Red
         }
 
     } else {
-        Write-Host "[OK] Service '$ServiceName' is already running."
+        Write-Host "[OK] Service '$ServiceName' is already running." -ForegroundColor Green
     }
 } catch {
     Write-Error "[ERROR] Could not find service '$ServiceName' or start it: $($_.Exception.Message)"
@@ -123,7 +123,7 @@ try {
 # 7. Guidance for post-install login
 # ----------------------------
 Write-Host ""
-Write-Host "[INFO] If everything is up and running, but you cannot log in:"
+Write-Host "[INFO] If everything is up and running, but you cannot log in:" -ForegroundColor Cyan
 Write-Host "       1. Type 'nsh' in the command prompt."
 Write-Host "       2. Run 'blasadmin' and wait for it to finish."
 Write-Host ""
