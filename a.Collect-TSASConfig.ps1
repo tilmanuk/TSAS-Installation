@@ -22,7 +22,7 @@ try {
     $TestFile = Join-Path $TempDir "write_test.tmp"
     "test" | Out-File -FilePath $TestFile -ErrorAction Stop
     Remove-Item $TestFile -Force
-    Write-Host "[OK] Verified write access to $TempDir"
+    Write-Host "[OK] Verified write access to $TempDir" -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Cannot write to $TempDir. Please run as Administrator."
     exit 1
@@ -65,7 +65,7 @@ try {
     if (-not $isAdmin) {
         Write-Warning "[WARN] Current user ($DetectedUser) is not in local Administrators group."
     } else {
-        Write-Host "[OK] Current user ($DetectedUser) is a local Administrator."
+        Write-Host "[OK] Current user ($DetectedUser) is a local Administrator." -ForegroundColor Green
     }
 } catch {
     Write-Warning "[WARN] Failed to check Administrator membership: $($_.Exception.Message)"
@@ -143,7 +143,7 @@ $Config.PatchRepository = Prompt-ConfigValue "Patch Repository" "C:\patches"
 # ----------------------------
 try {
     $Config | ConvertTo-Json -Depth 3 | Out-File -FilePath $ConfigFile -Encoding ASCII -Force
-    Write-Host "[OK] Configuration saved to $ConfigFile"
+    Write-Host "[OK] Configuration saved to $ConfigFile" -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Failed to save configuration: $($_.Exception.Message)"
     exit 1
@@ -174,7 +174,7 @@ TCPENABLED=1
 
 try {
     $SQLConfigContent | Out-File -FilePath $SQLConfigPath -Encoding ASCII -Force
-    Write-Host "[OK] SQL configuration file created: $SQLConfigPath"
+    Write-Host "[OK] SQL configuration file created: $SQLConfigPath" -ForegroundColor Green
 } catch {
     Write-Error "[ERROR] Failed to write SQLConfig.ini: $($_.Exception.Message)"
     exit 1
