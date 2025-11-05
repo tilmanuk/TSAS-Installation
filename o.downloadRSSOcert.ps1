@@ -167,9 +167,94 @@ try {
 }
 
 # ----------------------------
-# 8. Summary
+# 8. Summary and Post-Import Tasks
 # ----------------------------
-Write-Host "[ok] Completed. Certificate and keystore are located here:" -ForegroundColor Green
+Write-Host "[ok] Completed. Certificate and keystore have been created." -ForegroundColor Green
 Write-Host "      Certificate: $CertFile" -ForegroundColor Cyan
 Write-Host "      Keystore:   $JKSFile" -ForegroundColor Cyan
 Write-Host "[info] Keystore password used is the AdminPassword from tsas.config." -ForegroundColor Cyan
+Write-Host ""
+
+# ----------------------------
+# 9. Next Steps – Configure Remedy SSO in NSH
+# ----------------------------
+Write-Host "[info] Opening a new terminal window to complete Remedy SSO configuration..." -ForegroundColor Cyan
+Write-Host ""
+Write-Host "When the new window opens, please type the following commands **in order**:" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "nsh" -ForegroundColor White
+Write-Host "blasadmin" -ForegroundColor White
+Write-Host "Set RemedySsoAuth IsEnabled true" -ForegroundColor White
+Write-Host "Set RemedySsoAuth RemedySsoServerUrl `"$RemedySSOUrl/rsso`"" -ForegroundColor White
+Write-Host "Set RemedySsoAuth TruststorePathname `"$JKSFile`"" -ForegroundColor White
+Write-Host "Set RemedySsoAuth TruststorePassword $AdminPassword" -ForegroundColor White
+Write-Host "Set RemedySsoAuth TruststoreType jks" -ForegroundColor White
+Write-Host "exit" -ForegroundColor White
+Write-Host "exit" -ForegroundColor White
+Write-Host ""
+Write-Host "[info] Close the terminal window once all commands have completed successfully." -ForegroundColor Cyan
+Write-Host ""
+
+# Launch a new cmd window for interactive steps
+Start-Process "cmd.exe"
+
+# ----------------------------
+# 10. Wait for user to finish manual steps
+# ----------------------------
+Read-Host -Prompt "[info] Press ENTER once the NSH configuration window has been closed to continue..."
+
+# ----------------------------
+# 11. Restart BladeLogic services
+# ----------------------------
+$bladeService = "BladeApp Server"
+$connectorService = "bmc-server-automation-connector"
+
+Write-Host "[info] Restarting service: $bladeService ..." -ForegroundColor Cyan
+try {
+    # Stop and start the service quietly
+    Stop-Service -Name $bladeService -Force -ErrorAction SilentlyContinue
+    Start-Service -Name $bladeService -ErrorAction Stop
+
+    # Wait up to 10 minutes (600 seconds) for the service to be running
+    $maxWait = 600
+    $elapsed = 0
+    $waitInterval = 5
+
+    Write-Host ""
+    Write-Host "[info] Waiting for $bladeService to reach 'Running' state (timeout: $maxWait seconds)..." -ForegroundColor Cyan
+
+    while ((Get-Service -Name $bladeService -ErrorAction SilentlyContinue).Status -ne 'Running' -and $elapsed -lt $maxWait) {
+        $progress = ("{0,3}" -f $elapsed)
+        Write-Host -NoNewline "`r[waiting] Elapsed: $progress sec ..."
+        Start-Sleep -Seconds $waitInterval
+        $elapsed += $waitInterval
+    }
+
+    Write-Host ""  # newline after loop
+    $svcStatus = (Get-Service -Name $bladeService -ErrorAction SilentlyContinue).Status
+    if ($svcStatus -eq 'Running') {
+        Write-Host "[ok] $bladeService is now running." -ForegroundColor Green
+    } else {
+        Write-Host "[error] $bladeService did not start within $maxWait seconds." -ForegroundColor Red
+    }
+} catch {
+    Write-Host "[error] Failed to restart $bladeService." -ForegroundColor Red
+}
+
+# ----------------------------
+# 12. Ensure connector service is running
+# ----------------------------
+try {
+    $svc = Get-Service -Name $connectorService -ErrorAction SilentlyContinue
+    if ($null -eq $svc) {
+        Write-Host "[warning] Could not find service $connectorService." -ForegroundColor Yellow
+    } elseif ($svc.Status -ne 'Running') {
+        Write-Host "[info] Starting $connectorService..." -ForegroundColor Cyan
+        Start-Service -Name $connectorService -ErrorAction Stop
+        Write-Host "[ok] $connectorService started successfully." -ForegroundColor Green
+    } else {
+        Write-Host "[ok] $connectorService is already running." -ForegroundColor Green
+    }
+} catch {
+    Write-Host "[error] Unable to verify or start $connectorService." -ForegroundColor Red
+}

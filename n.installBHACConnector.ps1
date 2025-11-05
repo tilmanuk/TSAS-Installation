@@ -75,7 +75,7 @@ $DemoInstance = Prompt-Required "Enter the Helix Demo instance number (XXXX):"
 Write-Host ("[info] You entered instance number: " + $DemoInstance) -ForegroundColor Cyan
 
 $DemoInstance = $DemoInstance.Trim()
-$DemoUrl = "https://helixdemoash$DemoInstance-itom-demo.onbmc.com/automation-console/#/administration/connectors"
+$DemoUrl = "https://helixdemoash$DemoInstance-itom-demo.onbmc.com/"
 
 # ----------------------------
 # 4. Display connector info table
@@ -134,6 +134,34 @@ try {
     Write-Host "[ok] Extracted Server Automation Connector to $ExtractDir" -ForegroundColor Green
 } catch {
     Write-Host "[error] Failed to extract zip: $_" -ForegroundColor Red
+    exit 1
+}
+
+# ----------------------------
+# 7.1 Update server port in application.properties
+# ----------------------------
+$AppProperties = Join-Path $ExtractDir "config\application.properties"
+
+Write-Host "[info] Checking for application.properties file..." -ForegroundColor Cyan
+if (Test-Path $AppProperties) {
+    try {
+        Write-Host "[info] Found application.properties. Checking for 'server.port' setting..." -ForegroundColor Cyan
+        $FileContent = Get-Content $AppProperties
+
+        if ($FileContent -match 'server\.port=443') {
+            Write-Host "[info] Updating server port from 443 to 9443..." -ForegroundColor Cyan
+            (Get-Content $AppProperties) -replace 'server\.port=443', 'server.port=9443' |
+                Set-Content $AppProperties -Encoding UTF8
+            Write-Host "[ok] Port successfully updated to 9443 in application.properties." -ForegroundColor Green
+        } else {
+            Write-Host "[info] No 'server.port=443' entry found. No change needed." -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "[error] Failed to update server port in application.properties." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "[error] application.properties not found at expected location: $AppProperties" -ForegroundColor Red
     exit 1
 }
 
