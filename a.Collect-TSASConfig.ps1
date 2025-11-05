@@ -68,21 +68,41 @@ try {
         Write-Host "[OK] Current user ($DetectedUser) is a local Administrator." -ForegroundColor Green
     }
 } catch {
-    Write-Warning "[WARN] Failed to check Administrator membership: $($_.Exception.Message)"
+    Write-Warning "[WARN] Failed to check Administrator membership."
 }
 
 # ----------------------------
-# 3. Helper: generate safe structured password
+# 3. Detect DNS Domain
+# ----------------------------
+try {
+    $dnsDomain = (Get-DnsClient | Where-Object { $_.ConnectionSpecificSuffix -ne "" } | Select-Object -First 1).ConnectionSpecificSuffix
+    if (-not $dnsDomain) {
+        Write-Warning "[WARN] Could not automatically detect DNS domain. Please enter manually."
+        $dnsDomain = Read-Host "Enter DNS domain for this host"
+    }
+    Write-Host "[INFO] Detected DNS domain: $dnsDomain" -ForegroundColor Cyan
+
+    $inputDomain = Read-Host "DNS Domain for this host [$dnsDomain]"
+    if (-not [string]::IsNullOrWhiteSpace($inputDomain)) {
+        $dnsDomain = $inputDomain
+    }
+} catch {
+    Write-Warning "[WARN] Failed to detect DNS domain automatically. Please enter manually."
+    $dnsDomain = Read-Host "Enter DNS domain for this host"
+}
+
+# ----------------------------
+# 4. Helper: generate safe structured password
 # ----------------------------
 function New-SafePassword {
     param(
-        [int]$BlockLength = 5,   # characters per block
-        [int]$Blocks = 3         # number of blocks
+        [int]$BlockLength = 5,
+        [int]$Blocks = 3
     )
 
-    $upper = [char[]](65..90)           # A-Z
-    $lower = [char[]](97..122)          # a-z
-    $digit = [char[]](48..57)           # 0-9
+    $upper = [char[]](65..90)
+    $lower = [char[]](97..122)
+    $digit = [char[]](48..57)
     $special = [char[]]('!','@','#','$','%','^','&','*')
     $all = $upper + $lower + $digit + $special
 
@@ -118,7 +138,7 @@ $GeneratedPassword = New-SafePassword
 Write-Host "Generated Password: $GeneratedPassword"
 
 # ----------------------------
-# 4. Collect configuration interactively
+# 5. Collect configuration interactively
 # ----------------------------
 function Prompt-ConfigValue {
     param([string]$PromptText, [string]$Default)
@@ -137,27 +157,28 @@ $Config.AdminPassword = Prompt-ConfigValue "Admin Password" $GeneratedPassword
 $Config.RSCDUser = Prompt-ConfigValue "RSCD User" $DetectedUser
 $Config.TSASInstallLocation = Prompt-ConfigValue "TSAS Install Location" "C:\Program Files\BMC Software"
 $Config.PatchRepository = Prompt-ConfigValue "Patch Repository" "C:\patches"
+$Config.Domain = $dnsDomain
 
 # ----------------------------
-# 5. Save configuration to file
+# 6. Save configuration to file
 # ----------------------------
 try {
     $Config | ConvertTo-Json -Depth 3 | Out-File -FilePath $ConfigFile -Encoding ASCII -Force
     Write-Host "[OK] Configuration saved to $ConfigFile" -ForegroundColor Green
 } catch {
-    Write-Error "[ERROR] Failed to save configuration: $($_.Exception.Message)"
+    Write-Error "[ERROR] Failed to save configuration."
     exit 1
 }
 
 # ----------------------------
-# 6. Write SQL Configuration File (SQLConfig.ini)
+# 7. Write SQL Configuration File (SQLConfig.ini)
 # ----------------------------
 $SQLConfigPath = Join-Path $TempDir "SQLConfig.ini"
 $InstanceName = $Config.SQLInstance
 $SAPassword   = $Config.AdminPassword
 
 if (-not $InstanceName -or -not $SAPassword) {
-    Write-Error "[ERROR] SQL instance name or SA password missing in configuration. Cannot create SQLConfig.ini."
+    Write-Error "[ERROR] SQL instance name or SA password missing. Cannot create SQLConfig.ini."
     exit 1
 }
 
@@ -176,6 +197,8 @@ try {
     $SQLConfigContent | Out-File -FilePath $SQLConfigPath -Encoding ASCII -Force
     Write-Host "[OK] SQL configuration file created: $SQLConfigPath" -ForegroundColor Green
 } catch {
-    Write-Error "[ERROR] Failed to write SQLConfig.ini: $($_.Exception.Message)"
+    Write-Error "[ERROR] Failed to write SQLConfig.ini."
     exit 1
 }
+
+Write-Host "[INFO] TSAS configuration collection complete. Domain detected/saved: $($Config.Domain)" -ForegroundColor Cyan
