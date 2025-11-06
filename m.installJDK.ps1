@@ -68,4 +68,24 @@ if (Test-Path $InstallerPath) {
     exit 1
 }
 
+Write-Host "[INFO] Reloading system environment variables..." -ForegroundColor Cyan
+
+# Get system environment variables from registry
+$systemEnv = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+$userEnv   = Get-ItemProperty -Path "HKCU:\Environment" -ErrorAction SilentlyContinue
+
+# Merge PATH from system + user scopes (user takes precedence)
+$newPath = "$($systemEnv.Path);$($userEnv.Path)"
+$env:PATH = $newPath
+
+Write-Host "[OK] PATH variable reloaded into current session." -ForegroundColor Green
+
+# Optional sanity check
+Write-Host "[INFO] Java version check..." -ForegroundColor Cyan
+try {
+    & java -version
+} catch {
+    Write-Host "[ERROR] Java still not detected in PATH. Please verify installation." -ForegroundColor Red
+}
+
 Write-Host "[OK] All done. Log file: $LogFile" -ForegroundColor Green
