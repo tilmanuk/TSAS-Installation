@@ -7,7 +7,29 @@
 # ----------------------------
 # 1. Locate TSSA installer
 # ----------------------------
-$InstallerFolder = "C:\Temp\Disk1\files\installers\appserver_64"
+# ----------------------------
+# Locate AppServer installer folder
+# ----------------------------
+$BaseDir = "C:\Temp"
+
+# Locate the extracted TSSA???-WIN64 folder
+$ExtractedDir = Get-ChildItem -Path $BaseDir -Directory -Filter "TSSA???-WIN64" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+if (-not $ExtractedDir) {
+    Write-Host "[ERROR] Could not locate extracted folder matching TSSA???-WIN64 in $BaseDir" -ForegroundColor Red
+    Write-Host "[INFO] Please extract the TSAA installer ZIP to $BaseDir" -ForegroundColor Cyan
+    exit 1
+}
+
+# Construct the full path to the AppServer installer folder
+$InstallerFolder = Join-Path $ExtractedDir.FullName "Disk1\files\installers\appserver_64"
+
+if (-not (Test-Path $InstallerFolder)) {
+    Write-Host "[ERROR] AppServer installer folder not found: $InstallerFolder" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "[OK] AppServer installer folder located at: $InstallerFolder" -ForegroundColor Green
 $InstallerPattern = "TSSA???-WIN64.exe"
 
 $Installer = Get-ChildItem -Path $InstallerFolder -Filter $InstallerPattern | Select-Object -First 1

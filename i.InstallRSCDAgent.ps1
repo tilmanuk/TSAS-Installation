@@ -26,15 +26,23 @@ try {
 # ----------------------------
 # 2. Locate installer automatically
 # ----------------------------
-$InstallerPath = 'C:\Temp\rscd\windows_64'
-if (-not (Test-Path $InstallerPath)) {
-    Write-Error "[ERROR] Folder not found: $InstallerPath. Please extract RSCD installer to this location."
+$BaseDir = "C:\Temp"
+$RSCDExtractedDir = Get-ChildItem -Path $BaseDir -Directory -Filter "TSSA???-RSCDAgents" -ErrorAction SilentlyContinue | ForEach-Object {
+    $Candidate = Join-Path $_.FullName "rscd\windows_64"
+    if (Test-Path $Candidate) { return $Candidate }
+}
+
+if (-not $RSCDExtractedDir) {
+    Write-Error "[ERROR] Folder not found: rscd\windows_64 under any TSSA???-RSCDAgents in $BaseDir. Please extract RSCD installer to $BaseDir."
     exit 1
 }
 
-$InstallerFiles = Get-ChildItem -Path $InstallerPath -Filter 'RSCD*-WIN64.msi' -File -ErrorAction SilentlyContinue
+Write-Host "[OK] RSCD installer located at: $RSCDExtractedDir" -ForegroundColor Green
+
+# Use the correct variable here
+$InstallerFiles = Get-ChildItem -Path $RSCDExtractedDir -Filter 'RSCD*-WIN64.msi' -File -ErrorAction SilentlyContinue
 if (-not $InstallerFiles) {
-    Write-Error "[ERROR] No RSCD*-WIN64.msi file found in $InstallerPath."
+    Write-Error "[ERROR] No RSCD*-WIN64.msi file found in $RSCDExtractedDir."
     exit 1
 }
 
@@ -45,7 +53,7 @@ if ($InstallerFiles.Count -gt 1) {
     if ([string]::IsNullOrWhiteSpace($Selected)) {
         $InstallerExe = $InstallerFiles[0].FullName
     } else {
-        $SelectedFile = Join-Path $InstallerPath $Selected
+        $SelectedFile = Join-Path $RSCDExtractedDir $Selected
         if (-not (Test-Path $SelectedFile)) {
             Write-Error "[ERROR] File not found: $SelectedFile"
             exit 1
@@ -57,7 +65,6 @@ if ($InstallerFiles.Count -gt 1) {
 }
 
 Write-Host "[OK] Found RSCD installer: $InstallerExe" -ForegroundColor Green
-
 # ----------------------------
 # 3. Load tsas.config (JSON)
 # ----------------------------
@@ -94,9 +101,14 @@ Write-Host "[INFO] Log file: $LogFile" -ForegroundColor Cyan
 # ----------------------------
 Write-Host "[INFO] Installing RSCD Agent silently..." -ForegroundColor Cyan
 
-$InstallerFile = Get-ChildItem -Path "C:\Temp\rscd\windows_64" -Filter "RSCD*-WIN64.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $RSCDExtractedDir) {
+    Write-Error "[ERROR] RSCD extracted folder not found. Cannot proceed with installation."
+    exit 1
+}
+
+$InstallerFile = Get-ChildItem -Path $RSCDExtractedDir -Filter "RSCD*-WIN64.msi" -File -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $InstallerFile) {
-    Write-Error "[ERROR] Could not find RSCD*-WIN64.msi in C:\Temp\rscd\windows_64"
+    Write-Error "[ERROR] Could not find RSCD*-WIN64.msi in $RSCDExtractedDir"
     exit 1
 }
 

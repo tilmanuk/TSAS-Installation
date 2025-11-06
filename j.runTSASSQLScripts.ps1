@@ -8,7 +8,29 @@ try {
     # 1. Define paths
     # ----------------------------
     $ConfigPath = "C:\Temp\tsas.config"
-    $ScriptDir  = "C:\Temp\Disk1\files\configurations\db_scripts\sqlserver"
+# ----------------------------
+# Locate SQL Server DB scripts directory
+# ----------------------------
+$BaseDir = "C:\Temp"
+
+# Locate the extracted TSSA???-WIN64 folder
+$ExtractedDir = Get-ChildItem -Path $BaseDir -Directory -Filter "TSSA???-WIN64" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+if (-not $ExtractedDir) {
+    Write-Host "[ERROR] Could not locate extracted folder matching TSSA???-WIN64 in $BaseDir" -ForegroundColor Red
+    Write-Host "[INFO] Please extract the TSAA installer ZIP to $BaseDir" -ForegroundColor Cyan
+    exit 1
+}
+
+# Construct the full path to the SQL Server DB scripts
+$ScriptDir = Join-Path $ExtractedDir.FullName "Disk1\files\configurations\db_scripts\sqlserver"
+
+if (-not (Test-Path $ScriptDir)) {
+    Write-Host "[ERROR] SQL Server DB scripts directory not found: $ScriptDir" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "[OK] SQL Server DB scripts directory located at: $ScriptDir" -ForegroundColor Green
     $BatchFile  = "sqlserver_master.bat"
 
     # Save current working directory to restore later

@@ -109,10 +109,23 @@ try {
 # ----------------------------
 # 5. Find TSSACONSOLE???-WIN64.exe
 # ----------------------------
-$InstallerFolder = "C:\Temp\Disk1\files\installers\rcp"
+$BaseDir = "C:\Temp"
+
+# Locate the extracted TSSA???-WIN64 folder
+$ExtractedDir = Get-ChildItem -Path $BaseDir -Directory -Filter "TSSA???-WIN64" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+if (-not $ExtractedDir) {
+    Write-Host "[WARN] Could not locate extracted folder matching TSSA???-WIN64 in $BaseDir" -ForegroundColor Red
+    Write-Host "[INFO] Please download the TSAC installer from support.bmc.com" -ForegroundColor Cyan
+    Start-Process "https://support.bmc.com" -UseNewEnvironment
+    exit 1
+}
+
+# Build the full installer path
+$InstallerFolder = Join-Path $ExtractedDir.FullName "Disk1\files\installers\rcp"
 $InstallerPattern = "TSSACONSOLE???-WIN64.exe"
 
-$Installer = Get-ChildItem -Path $InstallerFolder -Filter $InstallerPattern | Select-Object -First 1
+$Installer = Get-ChildItem -Path $InstallerFolder -Filter $InstallerPattern -File -ErrorAction SilentlyContinue | Select-Object -First 1
 
 if (-not $Installer) {
     Write-Host "[WARN] Could not find installer matching '$InstallerPattern' in $InstallerFolder" -ForegroundColor Red
