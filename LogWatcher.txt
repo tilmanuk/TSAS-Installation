@@ -1,0 +1,8 @@
+C:\Program Files\BMC Software\Orchestration Connector\logs\tso_connector.log
+C:\Program Files\BMC Software\Server Automation Connector\logs\tssa_connector.log
+C:\Program Files\BMC Software\AO\CDP\tomcat\logs\aoocp.log
+C:\Program Files\BMC Software\AO\CDP\tomcat\logs\grid.log
+C:\Program Files\BMC Software\AO\CDP\tomcat\logs\processes.log
+C:\Program Files\BMC Software\AO\CDP\tomcat\logs\Create-Change-Record
+C:\Program Files\BMC Software\BladeLogic\NSH\br\appserver.log
+C:\Program Files\BMC Software\BladeLogic\NSH\br\restapi_default.log
