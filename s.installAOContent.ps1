@@ -69,6 +69,8 @@ $IPAddress      = ToStringSafe $Config.IPAddress
 $AdminUser      = ToStringSafe $Config.AdminUser
 $AdminPassword  = ToStringSafe $Config.AdminPassword
 $Domain         = ToStringSafe $Config.Domain
+$TSASInstallLocation = ToStringSafe $Config.TSASInstallLocation
+$InstallPath = Join-Path $TSASInstallLocation "AO\Content"
 
 # Build FQDN properly
 $FQDN = $Hostname + "." + $Domain
@@ -78,6 +80,7 @@ Write-Info ("  Hostname  : {0}" -f $Hostname)
 Write-Info ("  Domain    : {0}" -f $Domain)
 Write-Info ("  FQDN      : {0}" -f $FQDN)
 Write-Info ("  AdminUser : {0}" -f $AdminUser)
+Write-Info ("  Install Path : {0}" -f $InstallPath)
 
 # ----------------------------
 # 3. Create bao-content.ssi
@@ -90,7 +93,7 @@ if (Test-Path $SilentFile) {
 Write-Info ("Generating silent install file: {0}" -f (ToStringSafe $SilentFile))
 
 $ssiContent = @"
--P installLocation=C:\Program Files\BMC Software\AO\Content
+-P installLocation=$InstallPath
 -J AO_INSTALLING_FEATURES=BMC-SA-ITSM_Automation,BMC-SA-ITSM_Configuration,AO-AD-VitalQIP,AutoPilot-AD-Utilities,AutoPilot-OA-BAOGridManagement,AutoPilot-OA-Applications_Utilities,AutoPilot-OA-Common_Utilities,AutoPilot-OA-Errors,AutoPilot-OA-Directory_Services_Utilities,AutoPilot-OA-DNS_Integration,AutoPilot-OA-File_Utilities,AutoPilot-OA-Network_Utilities,AutoPilot-OA-Operating_System_Utilities,AutoPilot-OA-Physical_Device_Utilities,AutoPilot-OA-ITSM_Automation,AutoPilot-OA-Event_Orchestration,BMC-AD-Remedy_REST,adapter-rest,adapter-ws
 -J AO_REPOSITORY_PROTOCOL=https
 -J AO_REPOSITORY_HOST=$FQDN
@@ -228,3 +231,38 @@ Write-Host "12. Once all values are entered, click 'OK' to save the configuratio
 Write-Host ""
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 Write-OK "BAO Content installation script completed."
+
+# ----------------------------
+# Determine next script to run
+# ----------------------------
+
+# Get the current script name
+$CurrentScript = $MyInvocation.MyCommand.Name
+
+# Extract the first character (letter)
+$CurrentLetter = $CurrentScript.Substring(0,1).ToLower()
+
+# Calculate the next alphabetical letter
+$NextLetter = [char](([int][char]$CurrentLetter) + 1)
+
+# Get this script's folder
+$ScriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Look for a script in the same folder that starts with the next letter
+$NextScript = Get-ChildItem -Path $ScriptFolder -Filter "$NextLetter*.ps1" |
+              Sort-Object Name |
+              Select-Object -First 1
+
+Write-Host ""
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
+Write-Host "Script finished: $CurrentScript" -ForegroundColor Green
+
+if ($NextScript) {
+    Write-Host "Next script to run is:" -ForegroundColor Yellow
+    Write-Host "$($NextScript.Name)" -ForegroundColor Cyan
+} else {
+    Write-Host "No next script found for letter '$NextLetter'." -ForegroundColor Red
+    Write-Host "This may have been the final script." -ForegroundColor Yellow
+}
+
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
