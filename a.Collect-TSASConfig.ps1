@@ -156,7 +156,7 @@ $Config.AdminUser = Prompt-ConfigValue "Admin Username" "bladmin"
 $Config.AdminPassword = Prompt-ConfigValue "Admin Password" $GeneratedPassword
 $Config.RSCDUser = Prompt-ConfigValue "RSCD User" $DetectedUser
 $Config.TSASInstallLocation = Prompt-ConfigValue "TSAS Install Location" "C:\Program Files\BMC Software"
-$Config.PatchRepository = Prompt-ConfigValue "Patch Repository" "C:\patches"
+$Config.HelixURL = Prompt-ConfigValue "Helix Portal URL" "https://helixdemoashXXXX-itom-demo.onbmc.com"
 $Config.Domain = $dnsDomain
 
 # ----------------------------
@@ -202,3 +202,40 @@ try {
 }
 
 Write-Host "[INFO] TSAS configuration collection complete. Domain detected/saved: $($Config.Domain)" -ForegroundColor Cyan
+
+# ----------------------------
+# Determine next script to run
+# ----------------------------
+
+# Get the current script name
+$CurrentScript = $MyInvocation.MyCommand.Name
+
+# Extract the first character (letter)
+$CurrentLetter = $CurrentScript.Substring(0,1).ToLower()
+
+# Calculate the next alphabetical letter
+$NextLetter = [char](([int][char]$CurrentLetter) + 1)
+
+# Get this script's folder
+$ScriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Look for a script in the same folder that starts with the next letter
+$NextScript = Get-ChildItem -Path $ScriptFolder -Filter "$NextLetter*.ps1" |
+              Sort-Object Name |
+              Select-Object -First 1
+
+Write-Host ""
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
+Write-Host "Script finished: $CurrentScript" -ForegroundColor Green
+
+if ($NextScript) {
+    Write-Host "Next script to run is:" -ForegroundColor Yellow
+    Write-Host "$($NextScript.Name)" -ForegroundColor Cyan
+} else {
+    Write-Host "No next script found for letter '$NextLetter'." -ForegroundColor Red
+    Write-Host "This may have been the final script." -ForegroundColor Yellow
+}
+
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
+
+
