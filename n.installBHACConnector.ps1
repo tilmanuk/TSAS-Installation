@@ -46,6 +46,7 @@ $Hostname      = $Config.Hostname
 $AdminUser     = $Config.AdminUser
 $AdminPassword = $Config.AdminPassword
 $TSASInstallLocation = $Config.TSASInstallLocation
+$HelixURL = $Config.HelixURL
 
 # ----------------------------
 # 2. Update hosts file
@@ -68,14 +69,17 @@ if ($HostsContent -notcontains $HostsEntry) {
 }
 
 # ----------------------------
-# 3. Prompt for Helix Demo Instance
+# 3. Load Helix URL from config
 # ----------------------------
-$DemoInstance = Prompt-Required "Enter the Helix Demo instance number (XXXX):"
+if (-not $HelixURL) {
+    Write-Host "[error] HelixURL is missing in $ConfigPath" -ForegroundColor Red
+    exit 1
+}
 
-Write-Host ("[info] You entered instance number: " + $DemoInstance) -ForegroundColor Cyan
+$DemoUrl = $HelixURL
 
-$DemoInstance = $DemoInstance.Trim()
-$DemoUrl = "https://helixdemoash$DemoInstance-itom-demo.onbmc.com/"
+Write-Host "[info] Using Helix URL from configuration:" -ForegroundColor Cyan
+Write-Host "       $DemoUrl" -ForegroundColor Green
 
 # ----------------------------
 # 4. Display connector info table
@@ -208,3 +212,38 @@ try {
 }
 
 Write-Host "[ok] Server Automation Connector installation complete." -ForegroundColor Green
+
+# ----------------------------
+# Determine next script to run
+# ----------------------------
+
+# Get the current script name
+$CurrentScript = $MyInvocation.MyCommand.Name
+
+# Extract the first character (letter)
+$CurrentLetter = $CurrentScript.Substring(0,1).ToLower()
+
+# Calculate the next alphabetical letter
+$NextLetter = [char](([int][char]$CurrentLetter) + 1)
+
+# Get this script's folder
+$ScriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Look for a script in the same folder that starts with the next letter
+$NextScript = Get-ChildItem -Path $ScriptFolder -Filter "$NextLetter*.ps1" |
+              Sort-Object Name |
+              Select-Object -First 1
+
+Write-Host ""
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
+Write-Host "Script finished: $CurrentScript" -ForegroundColor Green
+
+if ($NextScript) {
+    Write-Host "Next script to run is:" -ForegroundColor Yellow
+    Write-Host "$($NextScript.Name)" -ForegroundColor Cyan
+} else {
+    Write-Host "No next script found for letter '$NextLetter'." -ForegroundColor Red
+    Write-Host "This may have been the final script." -ForegroundColor Yellow
+}
+
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
