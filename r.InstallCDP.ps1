@@ -68,6 +68,8 @@ $Hostname          = ToStringSafe $Config.Hostname
 $IPAddress         = ToStringSafe $Config.IPAddress
 $EncryptedPassword = ToStringSafe $Config.EncryptedPassword
 $Domain            = ToStringSafe $Config.Domain
+$TSASInstallLocation = ToStringSafe $Config.TSASInstallLocation
+$InstallPath = Join-Path $TSASInstallLocation "AO\CDP"
 
 # Construct FQDN and CDP URL
 $FQDN   = "$Hostname.$Domain"
@@ -80,6 +82,7 @@ Write-Info ("  Domain    : {0}" -f $Domain)
 Write-Info ("  FQDN      : {0}" -f $FQDN)
 Write-Info ("  Encrypted : {0}" -f ([bool]$EncryptedPassword))
 Write-Info ("  CDP URL   : {0}" -f $CDPURL)
+Write-Info ("  Install Path : {0}" -f $InstallPath)
 
 if ([string]::IsNullOrWhiteSpace($Hostname) -or [string]::IsNullOrWhiteSpace($IPAddress) -or [string]::IsNullOrWhiteSpace($EncryptedPassword)) {
     Write-Err "Required values missing in tsas.config (Hostname, IPAddress, EncryptedPassword)."
@@ -97,7 +100,7 @@ if (Test-Path $SilentFile) {
 Write-Info ("Generating silent install file: {0}" -f (ToStringSafe $SilentFile))
 
 $ssiContent = @"
--P installLocation=C:\Program Files\BMC Software\AO\CDP
+-P installLocation=$InstallPath
 -J AO_INSTALL_TYPE=install_new
 -J AO_INSTALLING_FEATURES=CDP,WEBSERVER,OCP
 -J AO_START_SERVER_ON_SUCCESS=true
@@ -243,3 +246,38 @@ Write-Host "Once confirmed, proceed with the next installation or configuration 
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
 Write-OK "BAO CDP silent installation script completed."
+
+# ----------------------------
+# Determine next script to run
+# ----------------------------
+
+# Get the current script name
+$CurrentScript = $MyInvocation.MyCommand.Name
+
+# Extract the first character (letter)
+$CurrentLetter = $CurrentScript.Substring(0,1).ToLower()
+
+# Calculate the next alphabetical letter
+$NextLetter = [char](([int][char]$CurrentLetter) + 1)
+
+# Get this script's folder
+$ScriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Look for a script in the same folder that starts with the next letter
+$NextScript = Get-ChildItem -Path $ScriptFolder -Filter "$NextLetter*.ps1" |
+              Sort-Object Name |
+              Select-Object -First 1
+
+Write-Host ""
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
+Write-Host "Script finished: $CurrentScript" -ForegroundColor Green
+
+if ($NextScript) {
+    Write-Host "Next script to run is:" -ForegroundColor Yellow
+    Write-Host "$($NextScript.Name)" -ForegroundColor Cyan
+} else {
+    Write-Host "No next script found for letter '$NextLetter'." -ForegroundColor Red
+    Write-Host "This may have been the final script." -ForegroundColor Yellow
+}
+
+Write-Host "-------------------------------------------------" -ForegroundColor Cyan
