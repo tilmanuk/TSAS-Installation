@@ -24,7 +24,7 @@ if ($LogFiles.Count -eq 0) {
 # 2. Validate log files & store initial pointer
 # --------------------
 $ValidFiles = @{}
-$ErrorsFound = $false
+$MissingFiles = @()
 
 foreach ($Log in $LogFiles) {
 
@@ -36,14 +36,18 @@ foreach ($Log in $LogFiles) {
         $ValidFiles[$Path] = $InitialCount
     }
     else {
-        Write-Host "[ERROR] File not found: $Path" -ForegroundColor Red
-        $ErrorsFound = $true
+        Write-Host "[WARN] File not found, skipping: $Path" -ForegroundColor Yellow
+        $MissingFiles += $Path
     }
 }
 
-if ($ErrorsFound) {
-    Write-Host "`nFix the missing files above before running again." -ForegroundColor Yellow
+if ($ValidFiles.Count -eq 0) {
+    Write-Host "`nNo valid log files found to watch." -ForegroundColor Red
     exit 1
+}
+
+if ($MissingFiles.Count -gt 0) {
+    Write-Host "`n[NOTE] Skipped $($MissingFiles.Count) missing file(s). Watching $($ValidFiles.Count) file(s)." -ForegroundColor Yellow
 }
 
 Write-Host "`n--- Now watching logs. Press CTRL+C to stop ---`n" -ForegroundColor Cyan
