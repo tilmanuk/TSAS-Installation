@@ -80,6 +80,9 @@ $DemoUrl = $HelixURL
 
 Write-Host "[info] Using Helix URL from configuration:" -ForegroundColor Cyan
 Write-Host "       $DemoUrl" -ForegroundColor Green
+Write-Host ""
+Write-Host "[warn] User Name is CASE SENSITIVE - ensure you enter the correct value." -ForegroundColor Yellow
+Write-Host ""
 
 # ----------------------------
 # 4. Display connector info table
