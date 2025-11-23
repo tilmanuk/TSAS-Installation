@@ -52,6 +52,7 @@ $SQLServiceName = "MSSQL`$$SQLInstance"
 # --------------------------
 $ServiceList = @(
     $SQLServiceName,
+    "RSCDsvc",
     "BladeApp Server",
     "bmc-server-automation-connector",
     "BAO-REPO",
